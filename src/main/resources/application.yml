@@ -1,0 +1,9 @@
+aws:
+  s3:
+    buckets:
+      shopfilestorage:
+        name: shopstorages
+        accessKey: AKIARQWTC66RYQAAJJ7P
+        secret: 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
+        region: us-east-1
+
