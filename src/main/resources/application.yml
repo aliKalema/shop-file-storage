@@ -1,3 +1,18 @@
+server.port: 0
+spring:
+  application:
+    name: storage
+
+  security:
+    oauth2:
+      resourceserver:
+        multitenant:
+          enabled: true
+          resolve-mode: jwt
+          jwt:
+            authorities-converter: io.quantics.multitenant.oauth2.config.KeycloakRealmAuthoritiesConverter
+
+
 aws:
   s3:
     buckets:
@@ -7,3 +22,16 @@ aws:
         secret: vnhR0qmDsLxj+zbyEhLXgmEY/9NVksP0tvCkq5Gi
         region: us-east-1
 
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${shop.registry.url}
+
+shop:
+  tenant:
+    default-id: PUBLIC
+  iam:
+    url: ${iamBaseUrl:http://localhost:8080}
+
+  registry:
+    url: ${EUREKA_URI:http://localhost:8083/eureka}
