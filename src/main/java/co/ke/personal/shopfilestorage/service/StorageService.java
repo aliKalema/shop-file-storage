@@ -1,13 +1,18 @@
 package co.ke.personal.shopfilestorage.service;
 
 import co.ke.personal.shopfilestorage.model.Image;
-import com.amazonaws.services.s3.AmazonS3;
+import io.imagekit.sdk.ImageKit;
+import io.imagekit.sdk.config.Configuration;
+import io.imagekit.sdk.exceptions.*;
+import io.imagekit.sdk.models.FileCreateRequest;
+import io.imagekit.sdk.models.results.Result;
+import io.quantics.multitenant.TenantContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.amazonaws.services.s3.model.PutObjectRequest;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -20,46 +25,48 @@ import java.util.List;
 @Service
 @Slf4j
 public class StorageService {
-    private final String bucketName;
 
-    private AmazonS3 s3Client;
     @Autowired
-    StorageService( AmazonS3 s3Client, @Value("${aws.s3.buckets.shopfilestorage.name}") String bucketName){
-        this.bucketName = bucketName;
-        this.s3Client = s3Client;
+    public StorageService(@Value("${PublicKey}") String publicKey,
+                          @Value("${PrivateKey}")String privateKey,
+                          @Value("${UrlEndpoint}")String url){
+        ImageKit imageKit = ImageKit.getInstance();
+        Configuration config = new Configuration(publicKey, privateKey, url);
+        imageKit.setConfig(config);
     }
 
     public List<Image> uploadFile(MultipartFile[] files) {
         log.info(String.format("Uploading %s files",String.valueOf(files.length)));
-        List<Image> images =  new ArrayList<>();
+        List<Image>images = new ArrayList<>();
         for (MultipartFile file : files) {
             String originalName = file.getOriginalFilename();
+            assert originalName != null;
             String extension = originalName.substring(originalName.lastIndexOf(".") + 1);
-            String newName = RandomStringUtils.randomAlphanumeric(18) + "." + extension;
-            File fileObj = convertMultiPartFileToFile(file);
-            s3Client.putObject(new PutObjectRequest(bucketName, newName, fileObj));
-            Image image = new Image();
-            image.setName(newName);
-            image.setFileType(file.getContentType());
-            images.add(image);
-            fileObj.delete();
+            String newName = String.format("%s.%s",RandomStringUtils.randomAlphanumeric(18), extension);
+            try{
+                FileCreateRequest fileCreateRequest = new FileCreateRequest(file.getBytes(),newName);
+                fileCreateRequest.setFolder(TenantContext.getTenantId());
+                Result result=ImageKit.getInstance().upload(fileCreateRequest);
+                images.add(new Image(result));
+            }
+            catch(IOException | InternalServerException | ForbiddenException |
+                  BadRequestException | UnknownException |
+                  TooManyRequestsException | UnauthorizedException e){
+                log.error(e.getMessage());
+            }
         }
         return  images;
     }
 
-    public String deleteFile(String fileName) {
-        s3Client.deleteObject(bucketName, fileName);
-        return fileName + " removed ...";
-    }
-
-    private File convertMultiPartFileToFile(MultipartFile file) {
-        File convertedFile = new File(Objects.requireNonNull(file.getOriginalFilename()));
-        try (FileOutputStream fos = new FileOutputStream(convertedFile)) {
-            fos.write(file.getBytes());
-        } catch (IOException e) {
-            log.error("Error converting multipartFile to file", e);
+    public void deleteFile(String fileId) {
+        try{
+            Result result = ImageKit.getInstance().deleteFile(fileId);
         }
-        return convertedFile;
+        catch ( InternalServerException | ForbiddenException | TooManyRequestsException |
+               UnauthorizedException | BadRequestException | UnknownException e){
+            log.error(e.getMessage());
+        }
+
     }
 
 }

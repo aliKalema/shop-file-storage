@@ -1,0 +1,8 @@
+version: '3'
+services:
+  shop-file-storage:
+    build: .
+    container_name: shop-file-storage
+    network_mode: host
+
+

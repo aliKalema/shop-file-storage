@@ -13,14 +13,10 @@ spring:
             authorities-converter: io.quantics.multitenant.oauth2.config.KeycloakRealmAuthoritiesConverter
 
 
-aws:
-  s3:
-    buckets:
-      shopfilestorage:
-        name: shopstorages
-        accessKey: AKIARQWTC66RYQAAJJ7P
-        secret: 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
-        region: us-east-1
+UrlEndpoint: https://ik.imagekit.io/3l8bwg9ap
+PrivateKey: private_YxKq+U4Ri6Ov1G5rMMySfDNjgqg=
+PublicKey: public_q1Mm1jclTuKJVJVAICiAcIoBnWo=
+
 
 eureka:
   client:
